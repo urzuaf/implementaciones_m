@@ -122,7 +122,7 @@ public class GraphStore implements AutoCloseable {
         try (BufferedReader br = Files.newBufferedReader(nodesPgdf, StandardCharsets.UTF_8)) {
             String line; String[] header = null;
             long written = 0;
-            final long BATCH = 100_000; 
+            final long BATCH = 50_000; 
 
             while ((line = br.readLine()) != null) {
                 if (line.isBlank()) continue;
@@ -166,7 +166,7 @@ public class GraphStore implements AutoCloseable {
         try (BufferedReader br = Files.newBufferedReader(edgesPgdf, StandardCharsets.UTF_8)) {
             String line; String[] header = null;
             long written = 0;
-            final long BATCH = 200_000;
+            final long BATCH = 100_000;
 
             while ((line = br.readLine()) != null) {
                 if (line.isBlank()) continue;

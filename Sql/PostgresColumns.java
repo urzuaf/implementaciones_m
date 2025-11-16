@@ -10,8 +10,8 @@ import java.io.IOException;
 public class PostgresColumns {
 
     // Tamaño de lotes para inserción masiva
-    private static final int NODE_BATCH = 100_000;
-    private static final int EDGE_BATCH = 500_000;
+    private static final int NODE_BATCH = 50_000;
+    private static final int EDGE_BATCH = 100_000;
     private static final int PROP_BATCH = 100_000;
 
     public static void main(String[] args) throws Exception {
@@ -23,7 +23,6 @@ public class PostgresColumns {
         String user = args[1];
         String pass = args[2];
 
-        // querymode: el 4to argumento empieza con -
         boolean queryMode = args[3].startsWith("-");
 
         try (Connection cx = DriverManager.getConnection(url, user, pass)) {
@@ -39,14 +38,13 @@ public class PostgresColumns {
 
                 long t0 = System.nanoTime();
                 ingestNodes(cx, nodesFile);
-                long t1 = System.nanoTime();
                 ingestEdges(cx, edgesFile);
-                long t2 = System.nanoTime();
                 cx.commit();
                 createIndexes(cx);
+                long t2 = System.nanoTime();
                 System.out.printf(Locale.ROOT,
-                        "Ingesta completada%n  nodos: %.3f ms%n  aristas: %.3f ms%n",
-                        (t1 - t0)/1e6, (t2 - t1)/1e6);
+                        "Ingesta completada: %.3f ms%n",
+                        (t2 - t0)/1e6);
                 return;
             }
 
@@ -227,9 +225,10 @@ private static void createIndexes(Connection cx) throws SQLException {
 
 // Ingesta Node
 private static void ingestNodes(Connection cx, Path nodesPgdf) throws IOException, SQLException {
+    // Esta consulta ya está correcta, solo inserta id y label
     final String upsertNode =
-        "INSERT INTO nodes(id,label,props) VALUES(?,?,?::jsonb) " +
-        "ON CONFLICT (id) DO UPDATE SET label=EXCLUDED.label, props=EXCLUDED.props";
+        "INSERT INTO nodes(id,label) VALUES(?,?) " +
+        "ON CONFLICT (id) DO UPDATE SET label=EXCLUDED.label";
 
     final String insertProp =
         "INSERT INTO node_properties(node_id,label,key,value,value_lc) VALUES(?,?,?,?,?) " +
@@ -264,30 +263,17 @@ private static void ingestNodes(Connection cx, Path nodesPgdf) throws IOExceptio
             String label = nonNull(row.get("@label")).trim();
             if (id.isEmpty() || label.isEmpty()) continue;
 
-            // Construcción segura del JSON
-            StringBuilder sb = new StringBuilder("{");
-            boolean first = true;
-            for (var e : row.entrySet()) {
-                String k = e.getKey();
-                if ("@id".equals(k) || "@label".equals(k)) continue;
-                String v = nonNull(e.getValue());
-                if (v.isEmpty()) continue;
+            // --- BLOQUE DE CONSTRUCCIÓN JSON ELIMINADO ---
+            // Ya no se necesita el StringBuilder sb
 
-                if (!first) sb.append(",");
-                sb.append("\"").append(escapeJson(k)).append("\":");
-                sb.append("\"").append(escapeJson(v)).append("\"");
-                first = false;
-            }
-            sb.append("}");
-
-            // Nodo con JSON
+            // Nodo (solo id y label)
             psNode.setString(1, id);
             psNode.setString(2, label);
-            psNode.setString(3, sb.toString());
+            // --- LÍNEA ELIMINADA: psNode.setString(3, sb.toString()); ---
             psNode.addBatch();
             nBatch++; nCount++;
 
-            // Propiedades individuales
+            // Propiedades individuales (esta lógica se mantiene intacta)
             for (var e : row.entrySet()) {
                 String k = e.getKey();
                 if ("@id".equals(k) || "@label".equals(k)) continue;
@@ -327,31 +313,6 @@ private static void ingestNodes(Connection cx, Path nodesPgdf) throws IOExceptio
 
         System.out.printf(Locale.ROOT, "  Nodes: %,d  NodeProps: %,d%n", nCount, pCount);
     }
-}
-
-/** Escapa caracteres problematicos JSON */
-private static String escapeJson(String text) {
-    if (text == null) return "";
-    StringBuilder sb = new StringBuilder(text.length() + 16);
-    for (int i = 0; i < text.length(); i++) {
-        char c = text.charAt(i);
-        switch (c) {
-            case '"': sb.append("\\\""); break;
-            case '\\': sb.append("\\\\"); break;
-            case '\n': sb.append("\\n"); break;
-            case '\r': sb.append("\\r"); break;
-            case '\t': sb.append("\\t"); break;
-            case '\b': sb.append("\\b"); break;
-            case '\f': sb.append("\\f"); break;
-            default:
-                if (c < 0x20 || c == 0x7F) {
-                    sb.append(String.format("\\u%04x", (int) c)); // elimina caracteres de control
-                } else {
-                    sb.append(c);
-                }
-        }
-    }
-    return sb.toString();
 }
 
 
