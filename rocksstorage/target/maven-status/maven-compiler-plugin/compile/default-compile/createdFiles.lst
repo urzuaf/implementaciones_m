@@ -1,5 +1,1 @@
-com/rocks/db/GraphAPI.class
 com/rocks/Main.class
-com/rocks/db/GraphStore$EdgeBlob.class
-com/rocks/db/GraphStore.class
-com/rocks/db/GraphStore$NodeBlob.class

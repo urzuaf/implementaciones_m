@@ -1,0 +1,8 @@
+Requires to manually create the indexes in the required properties 
+
+Ingest: mvn compile -q exec:java -Dexec.mainClass="com.neo4j.Main" -Dexec.args="bolt://localhost:7687 <db_user> <db_pass> <nodes_file> <edges_file>
+Benchmark: mvn compile -q exec:java -Dexec.mainClass="com.neo4j.Main" -Dexec.args="bolt://localhost:7687 <db_user> <db_pass> bench <ids_file> <labels_file> <properties_file>
+Queries:
+    -  mvn compile -q exec:java -Dexec.mainClass="com.neo4j.Main" -Dexec.args="bolt://localhost:7687 <db_user> <db_pass> -g <node_id>"
+    -  mvn compile -q exec:java -Dexec.mainClass="com.neo4j.Main" -Dexec.args="bolt://localhost:7687 <db_user> <db_pass> -gel <edge_label>"
+    -  mvn compile -q exec:java -Dexec.mainClass="com.neo4j.Main" -Dexec.args="bolt://localhost:7687 <db_user> <db_pass> -nv <property=value>"

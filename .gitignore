@@ -9,3 +9,6 @@ sparksee/sparksee.cfg
 *.gdb.log
 *.class
 *.log
+IdQueries.sh
+LabelQueries.sh
+PropertyQueries.sh

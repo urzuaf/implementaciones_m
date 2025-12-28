@@ -1,0 +1,9 @@
+Needs an existing database
+
+Compile: javac -cp postgresql-42.7.8.jar PostgresColumns.java
+Ingest: java -cp postgresql-42.7.8.jar:. PostgresColumns.java jdbc:postgresql://localhost:5432/<db_name> <db_user> <db_pass> <nodes_file> <edges_file>
+Benchmark : java -cp postgresql-42.7.8.jar:. PostgresColumns.java jdbc:postgresql://localhost:5432/<db_name> <db_user> <db_pass> bench <ids_file> <labels_file> <properties_file>
+Queries:
+    -   java -cp postgresql-42.7.8.jar:. PostgresColumns.java jdbc:postgresql://localhost:5432/<db_name> <db_user> <db_pass> -g <node_id>
+    -   java -cp postgresql-42.7.8.jar:. PostgresColumns.java jdbc:postgresql://localhost:5432/<db_name> <db_user> <db_pass> -gel <edge_label>
+    -   java -cp postgresql-42.7.8.jar:. PostgresColumns.java jdbc:postgresql://localhost:5432/<db_name> <db_user> <db_pass> -nv <property=value>
