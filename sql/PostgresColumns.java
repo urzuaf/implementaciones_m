@@ -227,68 +227,73 @@ public class PostgresColumns {
         cx.commit();
     }
 
-    private static void ingestNodes(Connection cx, Path nodesPgdf) throws IOException, SQLException {
-        final String upsertNode = "INSERT INTO nodes(id,label) VALUES(?,?) ON CONFLICT (id) DO NOTHING"; 
-        final String insertProp = "INSERT INTO node_properties(node_id,label,key,value) VALUES(?,?,?,?) ON CONFLICT DO NOTHING";
+   private static void ingestNodes(Connection cx, Path nodesPgdf) throws IOException, SQLException {
+    final String upsertNode = "INSERT INTO nodes(id,label) VALUES(?,?) ON CONFLICT (id) DO NOTHING"; 
+    final String insertProp = "INSERT INTO node_properties(node_id,label,key,value) VALUES(?,?,?,?)";
 
-        try (BufferedReader br = Files.newBufferedReader(nodesPgdf, StandardCharsets.UTF_8);
-             PreparedStatement psNode = cx.prepareStatement(upsertNode);
-             PreparedStatement psProp = cx.prepareStatement(insertProp)) {
+    try (BufferedReader br = Files.newBufferedReader(nodesPgdf, StandardCharsets.UTF_8);
+         PreparedStatement psNode = cx.prepareStatement(upsertNode);
+         PreparedStatement psProp = cx.prepareStatement(insertProp)) {
 
-            String line;
-            String[] header = null;
-            int nBatch = 0, pBatch = 0;
-            long nCount = 0;
+        String line;
+        String[] header = null;
+        int nBatch = 0, pBatch = 0;
+        long nCount = 0;
 
-            while ((line = br.readLine()) != null) {
-                if (line.isBlank()) continue;
-                if (line.startsWith("@")) {
-                    header = line.split("\\|", -1);
-                    continue;
-                }
-                if (header == null) continue;
-
-                String[] cols = line.split("\\|", -1);
-                Map<String,String> row = new LinkedHashMap<>();
-                for (int i = 0; i < header.length && i < cols.length; i++) {
-                    row.put(header[i], cols[i]);
-                }
-
-                String id    = nonNull(row.get("@id")).trim();
-                String label = nonNull(row.get("@label")).trim();
-                if (id.isEmpty() || label.isEmpty()) continue;
-
-                psNode.setString(1, id);
-                psNode.setString(2, label);
-                psNode.addBatch();
-                nBatch++; nCount++;
-
-                for (var e : row.entrySet()) {
-                    String k = e.getKey();
-                    if ("@id".equals(k) || "@label".equals(k)) continue;
-                    String v = nonNull(e.getValue());
-                    if (v.isEmpty()) continue;
-                    psProp.setString(1, id);
-                    psProp.setString(2, label);
-                    psProp.setString(3, k);
-                    psProp.setString(4, v);
-                    psProp.addBatch();
-                    pBatch++;
-                    if (pBatch >= PROP_BATCH) {
-                        psProp.executeBatch();
-                        pBatch = 0;
-                    }
-                }
-                if (nBatch >= NODE_BATCH) {
-                    psNode.executeBatch();
-                    nBatch = 0;
-                }
+        while ((line = br.readLine()) != null) {
+            if (line.isBlank()) continue;
+            if (line.startsWith("@")) {
+                header = line.split("\\|", -1);
+                continue;
             }
-            if (nBatch > 0) psNode.executeBatch();
-            if (pBatch > 0) psProp.executeBatch();
-            System.out.printf(Locale.ROOT, "  Nodes processed: %,d%n", nCount);
+            if (header == null) continue;
+
+            String[] cols = line.split("\\|", -1);
+            Map<String,String> row = new LinkedHashMap<>();
+            for (int i = 0; i < header.length && i < cols.length; i++) {
+                row.put(header[i], cols[i]);
+            }
+
+            String id    = nonNull(row.get("@id")).trim();
+            String label = nonNull(row.get("@label")).trim();
+            if (id.isEmpty() || label.isEmpty()) continue;
+
+            psNode.setString(1, id);
+            psNode.setString(2, label);
+            psNode.addBatch();
+            nBatch++; nCount++;
+
+            for (var e : row.entrySet()) {
+                String k = e.getKey();
+                if (k.startsWith("@")) continue;
+
+                String v = nonNull(e.getValue());
+                if (v.isEmpty()) continue;
+
+                psProp.setString(1, id);
+                psProp.setString(2, label);
+                psProp.setString(3, k);
+                psProp.setString(4, v);
+                psProp.addBatch();
+                pBatch++;
+            }
+
+            if (nBatch >= NODE_BATCH) {
+                psNode.executeBatch(); 
+                psProp.executeBatch(); 
+                cx.commit();           
+                nBatch = 0;
+                pBatch = 0;
+            }
         }
+
+        if (nBatch > 0) psNode.executeBatch();
+        if (pBatch > 0) psProp.executeBatch();
+        cx.commit();
+        
+        System.out.printf(Locale.ROOT, "  Nodes processed: %,d%n", nCount);
     }
+} 
 
     private static void ingestEdges(Connection cx, Path edgesPgdf) throws IOException, SQLException {
         final String insertEdge = "INSERT INTO edges(id,label,src,dst,directed) VALUES(?,?,?,?,?) ON CONFLICT (id) DO NOTHING";
