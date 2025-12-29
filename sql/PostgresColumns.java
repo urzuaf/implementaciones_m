@@ -198,8 +198,8 @@ public class PostgresColumns {
             "CREATE TABLE IF NOT EXISTS edges (" +
             "  id       TEXT PRIMARY KEY," +
             "  label    TEXT NOT NULL," +
-            "  src      TEXT NOT NULL REFERENCES nodes(id)," +
-            "  dst      TEXT NOT NULL REFERENCES nodes(id)," +
+            "  src      TEXT NOT NULL ," +
+            "  dst      TEXT NOT NULL ," +
             "  directed BOOLEAN NOT NULL" +
             ");" +
             "CREATE TABLE IF NOT EXISTS edge_properties (" +
