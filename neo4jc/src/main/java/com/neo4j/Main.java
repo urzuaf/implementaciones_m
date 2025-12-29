@@ -461,7 +461,7 @@ public class Main {
     private static void clearDatabase(Session session) {
         System.out.println("Preparing DB for ingest (Clear)...");
         long total = 0;
-        final int LIMIT = 10000; 
+        final int LIMIT = 5000; 
 
         while (true) {
             Result r = session.run("""
