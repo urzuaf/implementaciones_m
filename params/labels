@@ -1,0 +1,15 @@
+ContainerOf
+HasCreator
+HasInterest
+HasMember
+HasModerator
+HasTag
+HasType
+IsLocatedIn
+IsPartOf
+IsSubclassOf
+Knows
+Likes
+ReplyOf
+StudyAt
+WorkAt
